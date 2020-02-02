@@ -26,8 +26,6 @@ print('# of files:', len(file_list))
 
 # In[3]:
 print('Collecting tweets...')
-tweet_ids = set()
-
 u_ids = []
 u_names = []
 u_locations = []
@@ -39,7 +37,8 @@ u_tweets_count = []
 u_favorites_count = []
 years_creation = []
 
-texts = []
+tweet_ids = set()
+texts = set()
 urls = []
 mentions = []
 hashtags = []
@@ -195,7 +194,8 @@ for file in file_list:
             #             token not in mention_table]
 
             # append unique tweets
-            if tweet_id not in tweet_ids:
+            if tweet_text not in texts:
+                texts.add(tweet_text)
                 tweet_ids.add(tweet_id)
                 u_ids.append(user_id)
                 u_names.append(user_name)
@@ -208,7 +208,6 @@ for file in file_list:
                 u_favorites_count.append(user_favorites_count)
                 years_creation.append(user_creation_year)
 
-                texts.append(tweet_text)
                 urls.append(tweet_urls)
                 mentions.append(tweet_mentions)
                 hashtags.append(tweet_hashtags)
@@ -221,22 +220,38 @@ for file in file_list:
 print('total amount of tweets:', len(texts))
 
 data['user_id'] = u_ids
+del u_ids
 data['user_name'] = u_names
+del u_names
 data['user_location'] = u_locations
+del u_locations
 data['user_friends_count'] = friends_count
+del friends_count
 data['user_description'] = u_descriptions
+del u_descriptions
 data['user_is_verified'] = verifications
+del verifications
 data['user_followers_count'] = followers_count
+del followers_count
 data['user_tweets_count'] = u_tweets_count
+del u_tweets_count
 data['user_favorites_count'] = u_favorites_count
+del u_favorites_count
 data['user_created_at'] = years_creation
+del years_creation
 
 data['tweet_text'] = texts
+del texts
 data['tweet_urls'] = urls
+del urls
 data['tweet_mentions'] = mentions
+del mentions
 data['tweet_hashtags'] = hashtags
+del hashtags
 data['tweet_replies'] = tweets_replies
+del tweets_replies
 data['tweet_favorites'] = tweets_favorites
+del tweets_favorites
 
 
 # In[4]:
@@ -253,19 +268,6 @@ for stopword in additional_stopwords:
         STOPWORDS.append(stopword)
 
 
-# In[6]:
-
-
-# Dropping duplicate text
-data = data.iloc[data['tweet_text'].drop_duplicates().index.tolist()]
-
-
-# In[7]:
-
-
-# Unique texts
-print('Number of unique tweets obtained:', len(data))
-
 
 print('Generating dataset...')
 # tokenizing, removing stopwords, hashtags, mentions, urls, non-alphabetical chars
@@ -273,43 +275,40 @@ print('Number of processed tweets:')
 mentions_table = dict()
 url_table = dict()
 hashtag_table = dict()
-tweet_table = dict()
 tweets = []
 for row in data.itertuples():
     tweet_text = row.tweet_text.lower()
 
-    if not tweet_table.get(tweet_text):
-        tweet_table[tweet_text] = True
 
-        for url in row.tweet_urls:
-            url = word_tokenize(url)[2].lower()
-            if not url_table.get(url):
-                url_table[url] = True
+    for url in row.tweet_urls:
+        url = word_tokenize(url)[2].lower()
+        if not url_table.get(url):
+            url_table[url] = True
 
-        for mention in row.tweet_mentions:
-            mention = mention.lower()
-            if not mentions_table.get(mention):
-                mentions_table[mention] = True
+    for mention in row.tweet_mentions:
+        mention = mention.lower()
+        if not mentions_table.get(mention):
+             mentions_table[mention] = True
 
-        for hashtag in row.tweet_hashtags:
-            hashtag = hashtag.lower()
-            if not hashtag_table.get(hashtag):
-                hashtag_table[hashtag] = True
+    for hashtag in row.tweet_hashtags:
+        hashtag = hashtag.lower()
+        if not hashtag_table.get(hashtag):
+             hashtag_table[hashtag] = True
 
-        tokens = word_tokenize(tweet_text)
+    tokens = word_tokenize(tweet_text)
 
-        clean_tweet = [token for token in tokens if
-                       len(token) > 3 and
-                       token.isalpha() and
-                       token not in STOPWORDS and
-                       not mentions_table.get(token) and
-                       not url_table.get('https:'+token) and
-                       not hashtag_table.get(token)]
+    clean_tweet = [token for token in tokens if
+                   #len(token) > 2 and
+                   token.isalpha() and
+                   token not in STOPWORDS and
+                   not mentions_table.get(token) and
+                   not url_table.get('https:'+token) and
+                   not hashtag_table.get(token)]
 
-        tweets.append(clean_tweet)
+    tweets.append(clean_tweet)
 
-        if len(tweets) % 100000 == 0:
-            print('\t', len(tweets))
+    if len(tweets) % 100000 == 0:
+        print('\t', len(tweets))
 
 
 # In[8]:
